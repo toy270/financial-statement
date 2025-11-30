@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>재무제표 시각화 앱</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 재무제표 시각화</h1>
+            <p class="subtitle">DART 공시 데이터 기반 재무제표 분석</p>
+        </header>
+
+        <main>
+            <!-- 검색 섹션 -->
+            <section class="search-section">
+                <div class="search-box">
+                    <input 
+                        type="text" 
+                        id="companyInput" 
+                        placeholder="회사명을 입력하세요 (예: 삼성전자)"
+                        autocomplete="off"
+                    >
+                    <div id="suggestions" class="suggestions"></div>
+                </div>
+                
+                <div class="search-options">
+                    <div class="input-group" style="display: none;">
+                        <label for="apiKey">DART API 인증키:</label>
+                        <input 
+                            type="text" 
+                            id="apiKey" 
+                            placeholder="서버에서 자동으로 사용됩니다"
+                            readonly
+                        >
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="year">사업연도:</label>
+                        <input 
+                            type="number" 
+                            id="year" 
+                            placeholder="2023"
+                            min="2015"
+                            max="2024"
+                            value="2023"
+                        >
+                    </div>
+                    
+                    <div class="input-group">
+                        <label for="reportType">보고서 유형:</label>
+                        <select id="reportType">
+                            <option value="11011">사업보고서</option>
+                            <option value="11012">반기보고서</option>
+                            <option value="11013">1분기보고서</option>
+                            <option value="11014">3분기보고서</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="searchBtn" class="search-btn">조회하기</button>
+            </section>
+
+            <!-- 선택된 회사 정보 -->
+            <section id="companyInfo" class="company-info" style="display: none;">
+                <h2>회사 정보</h2>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <span class="info-label">회사명:</span>
+                        <span id="infoCorpName"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">회사코드:</span>
+                        <span id="infoCorpCode"></span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">종목코드:</span>
+                        <span id="infoStockCode"></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 로딩 인디케이터 -->
+            <div id="loading" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>재무제표 데이터를 불러오는 중...</p>
+            </div>
+
+            <!-- 에러 메시지 -->
+            <div id="errorMessage" class="error-message" style="display: none;"></div>
+
+            <!-- 재무제표 데이터 -->
+            <section id="financialData" class="financial-data" style="display: none;">
+                <h2>재무제표 데이터</h2>
+                
+                <!-- 탭 메뉴 -->
+                <div class="tabs">
+                    <button class="tab-btn active" data-tab="bs">재무상태표</button>
+                    <button class="tab-btn" data-tab="is">손익계산서</button>
+                    <button class="tab-btn" data-tab="chart">차트</button>
+                </div>
+
+                <!-- 재무상태표 탭 -->
+                <div id="bsTab" class="tab-content active">
+                    <div class="table-container">
+                        <table id="bsTable" class="financial-table">
+                            <thead>
+                                <tr>
+                                    <th>계정명</th>
+                                    <th>당기금액</th>
+                                    <th>전기금액</th>
+                                    <th>전전기금액</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 손익계산서 탭 -->
+                <div id="isTab" class="tab-content">
+                    <div class="table-container">
+                        <table id="isTable" class="financial-table">
+                            <thead>
+                                <tr>
+                                    <th>계정명</th>
+                                    <th>당기금액</th>
+                                    <th>전기금액</th>
+                                    <th>전전기금액</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 차트 탭 -->
+                <div id="chartTab" class="tab-content">
+                    <div class="chart-container">
+                        <canvas id="financialChart"></canvas>
+                    </div>
+                    <div class="chart-controls">
+                        <label for="chartMetric">표시할 지표:</label>
+                        <select id="chartMetric">
+                            <option value="">지표를 선택하세요</option>
+                        </select>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Data source: DART 전자공시시스템 | Powered by OpenDart API</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
+
