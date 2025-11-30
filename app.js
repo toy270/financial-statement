@@ -50,6 +50,10 @@ function initializeEventListeners() {
 
     // 차트 지표 변경
     chartMetric.addEventListener('change', updateChart);
+
+    // AI 설명 버튼
+    document.getElementById('explainBS').addEventListener('click', () => explainFinancials('BS'));
+    document.getElementById('explainIS').addEventListener('click', () => explainFinancials('IS'));
 }
 
 // 회사 검색 자동완성
@@ -376,5 +380,98 @@ function showError(message) {
 // 에러 숨기기
 function hideError() {
     document.getElementById('errorMessage').style.display = 'none';
+}
+
+// Gemini AI로 재무제표 설명 요청
+async function explainFinancials(dataType) {
+    if (!currentFinancialData) {
+        showError('먼저 재무제표 데이터를 조회해주세요.');
+        return;
+    }
+
+    const aiLoading = document.getElementById('aiLoading');
+    const aiExplanation = document.getElementById('aiExplanation');
+
+    // UI 초기화
+    aiExplanation.style.display = 'none';
+    aiLoading.style.display = 'flex';
+
+    try {
+        // 데이터 타입에 따라 필터링
+        const filteredData = currentFinancialData
+            .filter(item => item.sj_div === dataType && item.fs_div === 'CFS')
+            .slice(0, 20); // 주요 항목만 전송 (API 비용 절감)
+
+        // 서버로 데이터 전송
+        const response = await fetch('/api/explain', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                companyName: selectedCompany.corp_name,
+                financialData: filteredData,
+                dataType: dataType
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('AI 설명 요청 실패');
+        }
+
+        const result = await response.json();
+
+        if (result.status !== 'success') {
+            throw new Error(result.message || 'AI 설명 생성 실패');
+        }
+
+        // 설명 표시
+        displayAIExplanation(result.explanation, dataType);
+
+    } catch (error) {
+        console.error('AI 설명 오류:', error);
+        showError('AI 설명 생성 중 오류가 발생했습니다: ' + error.message);
+        aiExplanation.style.display = 'none';
+    } finally {
+        aiLoading.style.display = 'none';
+    }
+}
+
+// AI 설명 표시
+function displayAIExplanation(explanation, dataType) {
+    const aiExplanation = document.getElementById('aiExplanation');
+    const content = aiExplanation.querySelector('.explanation-content');
+
+    const dataTypeName = dataType === 'BS' ? '재무상태표' : '손익계산서';
+
+    // 마크다운 스타일의 텍스트를 HTML로 변환
+    let htmlContent = explanation
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>') // Bold
+        .replace(/\*(.+?)\*/g, '<em>$1</em>') // Italic
+        .replace(/^### (.+)$/gm, '<h4>$1</h4>') // Heading 3
+        .replace(/^## (.+)$/gm, '<h3>$1</h3>') // Heading 2
+        .replace(/^# (.+)$/gm, '<h2>$1</h2>') // Heading 1
+        .replace(/^\* (.+)$/gm, '<li>$1</li>') // List items
+        .replace(/^- (.+)$/gm, '<li>$1</li>') // List items
+        .replace(/\n\n/g, '</p><p>') // Paragraphs
+        .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>'); // Wrap lists
+
+    content.innerHTML = `
+        <div class="ai-response-header">
+            <h3>🎯 ${selectedCompany.corp_name} ${dataTypeName} 분석</h3>
+            <p class="ai-timestamp">분석 시간: ${new Date().toLocaleString('ko-KR')}</p>
+        </div>
+        <div class="ai-response-body">
+            <p>${htmlContent}</p>
+        </div>
+        <div class="ai-disclaimer">
+            <p>⚠️ 이 설명은 AI가 생성한 것으로 참고용입니다. 투자 결정 시 전문가의 조언을 받으세요.</p>
+        </div>
+    `;
+
+    aiExplanation.style.display = 'block';
+    
+    // 스크롤
+    aiExplanation.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
